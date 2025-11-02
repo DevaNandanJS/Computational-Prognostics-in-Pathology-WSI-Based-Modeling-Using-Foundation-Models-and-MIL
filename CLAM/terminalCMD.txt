@@ -1,0 +1,40 @@
+python main.py --data_root_dir "C:/thesis project/TCGA-BRCA-features/TCGA" --split_dir "C:/thesis project/splits" --task task_2_tumor_subtyping --exp_code brca_5yr_classification_clam_fold_0_lr_2e-5 --model_type clam_sb --bag_loss ce --lr 2e-5 --k 5 --k_start 0 --k_end 1 --subtyping --B 1 --weighted_sample
+
+python main.py --data_root_dir "C:/thesis project/TCGA-BRCA-features/TCGA" --split_dir "C:/thesis project/splits" --task task_2_tumor_subtyping --exp_code brca_5yr_classification_clam_fold_0_lr_2e-5_no_inst_drop_0.5_reg_1e-4 --model_type clam_sb --bag_loss ce --lr 2e-5 --k 5 --k_start 0 --k_end 1 --subtyping --B 1 --no_inst_cluster --drop_out 0.5 --reg 1e-4
+
+python main.py --data_root_dir "C:/thesis project/TCGA-BRCA-features/TCGA" --split_dir "C:/thesis project/splits" --task task_2_tumor_subtyping --exp_code brca_5yr_classification_clam_fold_0_MAX_REG --model_type clam_sb --bag_loss ce --lr 2e-5 --k 5 --k_start 0 --k_end 1 --subtyping --B 1 --weighted_sample --no_inst_cluster --drop_out 0.5 --reg 1e-3
+
+
+
+PS C:\thesis project> & C:\Users\devan\miniconda3\shell\condabin\conda-hook.ps1
+PS C:\thesis project> conda activate mil_thesis
+
+
+
+Let's clarify the input and where Fold 0's data originates:
+
+  1. What is the input here?
+
+  The input to the training pipeline consists of three main components:
+
+   * Feature Files (H5 files): These are the core data, containing the extracted features for each slide.
+       * Location: C:\thesis project\TCGA-BRCA-features\TCGA\
+       * Example: TCGA-4H-AAAK-01Z-00-DX1.ABF1B042-1970-4E28-8671-43AAD393D2F9.h5
+   * Master CSV File: This file acts as a central registry, mapping each slide_id to its associated
+     metadata, including the label used for classification.
+       * Location: C:\thesis project\master.csv
+   * Split CSV Files: These files define how the slides are divided into training, validation, and testing        
+     sets for each specific fold.
+       * Location: C:\thesis project\splits\<fold_number>\ (e.g., C:\thesis project\splits\0\)
+       * Examples: train.csv, test.csv (found within each fold's directory)
+
+  2. From which folder is fold 0 taken?
+
+  The data for Fold 0 is specifically taken from the C:\thesis project\splits\0\ folder.
+
+   * Inside this folder, train.csv specifies the slide_ids to be used for the training set of Fold 0.
+   * Similarly, test.csv specifies the slide_ids for the testing set of Fold 0.
+
+  The script then uses these slide_ids to retrieve the corresponding labels from C:\thesis
+  project\master.csv and to load the actual feature data from the H5 files in C:\thesis
+  project\TCGA-BRCA-features\TCGA\.

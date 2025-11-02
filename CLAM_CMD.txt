@@ -1,0 +1,1 @@
+python main.py --data_root_dir "C:/thesis project/TCGA-BRCA-features/TCGA" --split_dir "C:/thesis project/splits" --task task_2_tumor_subtyping --exp_code brca_5yr_classification_clam_fold_0_MAX_REG --model_type clam_sb --bag_loss ce --lr 2e-5 --k 5 --k_start 0 --k_end 1 --subtyping --B 1 --weighted_sample --no_inst_cluster --drop_out 0.5 --reg 1e-3 --early_stopping
