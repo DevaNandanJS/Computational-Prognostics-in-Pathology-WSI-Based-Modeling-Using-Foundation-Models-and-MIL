@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch.optim import lr_scheduler
 from utils.utils import *
 import os
 from dataset_modules.dataset_generic import save_splits
@@ -8,6 +9,7 @@ from models.model_clam import CLAM_MB, CLAM_SB
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.metrics import auc as calc_auc
+from utils.focal_loss import FocalLoss
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -119,6 +121,30 @@ def train(datasets, cur, args):
         loss_fn = SmoothTop1SVM(n_classes = args.n_classes)
         if device.type == 'cuda':
             loss_fn = loss_fn.cuda()
+    elif args.bag_loss == 'focal':
+        print("Calculating new weights for focal loss")
+        # Reuse the existing weight calculation logic
+        train_labels = train_split.slide_data['label'].tolist()
+        n_samples = len(train_labels)
+        n_classes = args.n_classes
+        class_counts = np.bincount(train_labels, minlength=n_classes)
+        
+        inverse_frequencies = [n_samples / (count * n_classes) if count > 0 else 0.0 for count in class_counts]
+        
+        max_effective_weight = 1.0
+        if any(count > 0 for count in class_counts):
+            max_effective_weight = max([w for w in inverse_frequencies if w > 0], default=n_samples) 
+        
+        final_weights = []
+        for count, inv_freq in zip(class_counts, inverse_frequencies):
+            if count == 0:
+                final_weights.append(max_effective_weight * 100)
+            else:
+                final_weights.append(inv_freq)
+
+        alpha = torch.tensor(final_weights, dtype=torch.float32).to(device)
+        print(f"Using focal loss with alpha: {alpha}")
+        loss_fn = FocalLoss(gamma=2, alpha=alpha)
     else:
         if args.weighted_sample:
             print("Calculating new weights")
@@ -127,8 +153,23 @@ def train(datasets, cur, args):
             n_samples = len(train_labels)
             n_classes = args.n_classes
             class_counts = np.bincount(train_labels, minlength=n_classes)
-            weights = [n_samples / (n_classes * count) if count > 0 else 0 for count in class_counts]
-            weights = torch.tensor(weights, dtype=torch.float32).to(device)
+            
+            # Calculate base inverse frequencies
+            inverse_frequencies = [n_samples / (count * n_classes) if count > 0 else 0.0 for count in class_counts]
+
+            # Determine a suitable high weight for missing classes.
+            max_effective_weight = 1.0
+            if any(count > 0 for count in class_counts):
+                max_effective_weight = max([w for w in inverse_frequencies if w > 0], default=n_samples) 
+            
+            final_weights = []
+            for count, inv_freq in zip(class_counts, inverse_frequencies):
+                if count == 0:
+                    final_weights.append(max_effective_weight * 100)
+                else:
+                    final_weights.append(inv_freq)
+
+            weights = torch.tensor(final_weights, dtype=torch.float32).to(device)
             print(f"Using weighted loss with weights: {weights}")
             loss_fn = nn.CrossEntropyLoss(weight=weights)
         else:
@@ -179,6 +220,10 @@ def train(datasets, cur, args):
     optimizer = get_optim(model, args)
     print('Done!')
     
+    print('\nInit scheduler ...', end=' ')
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, verbose=True)
+    print('Done!')
+
     print('\nInit Loaders...', end=' ')
     train_loader = get_split_loader(train_split, training=True, testing = args.testing, weighted = args.weighted_sample)
     val_loader = get_split_loader(val_split,  testing = args.testing)
@@ -197,12 +242,12 @@ def train(datasets, cur, args):
         if args.model_type in ['clam_sb', 'clam_mb'] and not args.no_inst_cluster:     
             train_loop_clam(epoch, model, train_loader, optimizer, args.n_classes, args.bag_weight, writer, loss_fn)
             stop = validate_clam(cur, epoch, model, val_loader, args.n_classes, 
-                early_stopping, writer, loss_fn, args.results_dir)
+                early_stopping, writer, loss_fn, args.results_dir, scheduler)
         
         else:
             train_loop(epoch, model, train_loader, optimizer, args.n_classes, writer, loss_fn)
             stop = validate(cur, epoch, model, val_loader, args.n_classes, 
-                early_stopping, writer, loss_fn, args.results_dir)
+                early_stopping, writer, loss_fn, args.results_dir, scheduler)
         
         if stop: 
             break
@@ -346,7 +391,7 @@ def train_loop(epoch, model, loader, optimizer, n_classes, writer = None, loss_f
         writer.add_scalar('train/error', train_error, epoch)
 
    
-def validate(cur, epoch, model, loader, n_classes, early_stopping = None, writer = None, loss_fn = None, results_dir=None):
+def validate(cur, epoch, model, loader, n_classes, early_stopping = None, writer = None, loss_fn = None, results_dir=None, scheduler=None):
     if loader is None:
         return False
     model.eval()
@@ -385,6 +430,8 @@ def validate(cur, epoch, model, loader, n_classes, early_stopping = None, writer
     else:
         auc = roc_auc_score(labels, prob, multi_class='ovr')
     
+    if scheduler:
+        scheduler.step(val_loss)
     
     if writer:
         writer.add_scalar('val/loss', val_loss, epoch)
@@ -406,7 +453,7 @@ def validate(cur, epoch, model, loader, n_classes, early_stopping = None, writer
 
     return False
 
-def validate_clam(cur, epoch, model, loader, n_classes, early_stopping = None, writer = None, loss_fn = None, results_dir = None):
+def validate_clam(cur, epoch, model, loader, n_classes, early_stopping = None, writer = None, loss_fn = None, results_dir = None, scheduler=None):
     if loader is None:
         return False
     model.eval()
@@ -450,6 +497,9 @@ def validate_clam(cur, epoch, model, loader, n_classes, early_stopping = None, w
 
     val_error /= len(loader)
     val_loss /= len(loader)
+    
+    if scheduler:
+        scheduler.step(val_loss)
 
     if n_classes == 2:
         auc = roc_auc_score(labels, prob[:, 1])

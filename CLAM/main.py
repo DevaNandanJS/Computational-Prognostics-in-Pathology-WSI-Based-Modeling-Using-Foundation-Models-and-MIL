@@ -43,23 +43,32 @@ def main(args):
     for i in folds:
         seed_torch(args.seed)
         split_dir = os.path.join(args.split_dir, str(i))
+        
+        #---> Create training, validation, and testing datasets
         train_csv_path = os.path.join(split_dir, 'train.csv')
-        test_csv_path = os.path.join(split_dir, 'test.csv')
-
         train_ids = pd.read_csv(train_csv_path)['slide_id']
         train_mask = dataset.slide_data['slide_id'].isin(train_ids.tolist())
         train_df_slice = dataset.slide_data[train_mask].reset_index(drop=True)
         train_dataset = Generic_Split(train_df_slice, data_dir=dataset.data_dir, num_classes=dataset.num_classes)
+        print("Training on {} samples".format(len(train_dataset)))
 
+        test_csv_path = os.path.join(split_dir, 'test.csv')
         test_ids = pd.read_csv(test_csv_path)['slide_id']
         test_mask = dataset.slide_data['slide_id'].isin(test_ids.tolist())
         test_df_slice = dataset.slide_data[test_mask].reset_index(drop=True)
         test_dataset = Generic_Split(test_df_slice, data_dir=dataset.data_dir, num_classes=dataset.num_classes)
+        print("Testing on {} samples".format(len(test_dataset)))
 
-
-
-        val_dataset = test_dataset
-        print("Validating on {} samples".format(len(val_dataset)))
+        val_csv_path = os.path.join(split_dir, 'val.csv')
+        try:
+            val_ids = pd.read_csv(val_csv_path)['slide_id']
+            val_mask = dataset.slide_data['slide_id'].isin(val_ids.tolist())
+            val_df_slice = dataset.slide_data[val_mask].reset_index(drop=True)
+            val_dataset = Generic_Split(val_df_slice, data_dir=dataset.data_dir, num_classes=dataset.num_classes)
+            print("Validating on {} samples".format(len(val_dataset)))
+        except FileNotFoundError:
+            print("Warning: val.csv not found in {}. Using test set for validation.".format(split_dir))
+            val_dataset = test_dataset
         
         datasets = (train_dataset, val_dataset, test_dataset)
         results, test_auc, val_auc, test_acc, val_acc  = train(datasets, i, args)
@@ -107,7 +116,7 @@ parser.add_argument('--testing', action='store_true', default=False, help='debug
 parser.add_argument('--early_stopping', action='store_true', default=False, help='enable early stopping')
 parser.add_argument('--opt', type=str, choices = ['adam', 'sgd'], default='adam')
 parser.add_argument('--drop_out', type=float, default=0.25, help='dropout')
-parser.add_argument('--bag_loss', type=str, choices=['svm', 'ce'], default='ce',
+parser.add_argument('--bag_loss', type=str, choices=['svm', 'ce', 'focal'], default='ce',
                      help='slide-level classification loss function (default: ce)')
 parser.add_argument('--model_type', type=str, choices=['clam_sb', 'clam_mb', 'mil'], default='clam_sb', 
                     help='type of model (default: clam_sb, clam w/ single attention branch)')

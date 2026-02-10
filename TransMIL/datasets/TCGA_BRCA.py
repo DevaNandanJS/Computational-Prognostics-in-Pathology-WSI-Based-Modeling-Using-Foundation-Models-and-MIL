@@ -2,6 +2,8 @@ import torch
 import pandas as pd
 from pathlib import Path
 import os
+import random
+import h5py
 
 import torch.utils.data as data
 
@@ -10,11 +12,11 @@ class TcgaBrca(data.Dataset):
         self.__dict__.update(locals())
         self.dataset_cfg = dataset_cfg
 
-        self.fold = self.dataset_cfg.fold
-        self.feature_dir = self.dataset_cfg.data_dir
-        self.split_dir = self.dataset_cfg.label_dir
+        self.fold = self.dataset_cfg['fold']
+        self.feature_dir = self.dataset_cfg['data_dir']
+        self.split_dir = self.dataset_cfg['label_dir']
 
-        self.shuffle = self.dataset_cfg.data_shuffle
+        self.shuffle = self.dataset_cfg['data_shuffle']
 
         if state == 'train':
             split_path = os.path.join(self.split_dir, str(self.fold), 'train.csv')
@@ -41,7 +43,13 @@ class TcgaBrca(data.Dataset):
             # Fallback for .h5 files if .pt is not found
             full_path = Path(self.feature_dir) / f'{slide_id}.h5'
         
-        features = torch.load(full_path)
+        if full_path.suffix == '.pt':
+            features = torch.load(full_path)
+        elif full_path.suffix == '.h5':
+            with h5py.File(full_path, 'r') as hf:
+                features = torch.from_numpy(hf['features'][:])
+        else:
+            raise FileNotFoundError(f"Feature file for {slide_id} not found or has unsupported extension: {full_path}")
 
         if self.shuffle:
             index = list(range(features.shape[0]))

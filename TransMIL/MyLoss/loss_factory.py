@@ -1,23 +1,18 @@
 __author__ = 'shaozc'
 
-import torch
+import torch.nn.functional as F
+import numpy as np 
 import torch.nn as nn
+from .focal_loss import FocalLoss # Added this import
 
-from .boundary_loss import BDLoss, SoftDiceLoss, DC_and_BD_loss, HDDTBinaryLoss,\
-     DC_and_HDBinary_loss, DistBinaryDiceLoss
-from .dice_loss import GDiceLoss, GDiceLossV2, SSLoss, SoftDiceLoss,\
-     IoULoss, TverskyLoss, FocalTversky_loss, AsymLoss, DC_and_CE_loss,\
-         PenaltyGDiceLoss, DC_and_topk_loss, ExpLog_loss
-from .focal_loss import FocalLoss
-from .hausdorff import HausdorffDTLoss, HausdorffERLoss
-from .lovasz_loss import LovaszSoftmax
-from .ND_Crossentropy import CrossentropyND, TopKLoss, WeightedCrossEntropyLoss,\
-     WeightedCrossEntropyLossV2, DisPenalizedCE
-
-from pytorch_toolbelt import losses as L
+# Hardcoded class weights for Fold 0 based on training set distribution
+# Class 0 (Majority): 188 samples, Weight: 0.5505
+# Class 1 (Minority): 19 samples, Weight: 5.4474
+# Calculated as N / (C * N_c) where N=total, C=num_classes, N_c=class_count
+class_weights_fold0 = np.array([0.5505, 5.4474], dtype=np.float32)
 
 def create_loss(args, w1=1.0, w2=0.5):
-    conf_loss = args.base_loss
+    conf_loss = args['base_loss']
     ### MulticlassJaccardLoss(classes=np.arange(11)
     # mode = args.base_loss #BINARY_MODE \MULTICLASS_MODE \MULTILABEL_MODE 
     loss = None
@@ -25,7 +20,7 @@ def create_loss(args, w1=1.0, w2=0.5):
         loss = getattr(nn, conf_loss)() 
     #binary loss
     elif conf_loss == "focal":
-        loss = L.BinaryFocalLoss()
+        loss = FocalLoss(alpha=class_weights_fold0, apply_nonlin=lambda x: F.softmax(x, dim=1))
     elif conf_loss == "jaccard":
         loss = L.BinaryJaccardLoss()
     elif conf_loss == "jaccard_log":

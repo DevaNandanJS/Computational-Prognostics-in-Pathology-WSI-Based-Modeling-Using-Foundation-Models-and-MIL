@@ -6,7 +6,7 @@ import random
 import pandas as pd
 
 #---->
-from MyOptimizer import create_optimizer
+
 from MyLoss import create_loss
 from utils.utils import cross_entropy_torch
 
@@ -14,6 +14,7 @@ from utils.utils import cross_entropy_torch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
 import torchmetrics
 
 #---->
@@ -122,38 +123,68 @@ class  ModelInterface(pl.LightningModule):
 
 
     def validation_epoch_end(self, val_step_outputs):
-        logits = torch.cat([x['logits'] for x in val_step_outputs], dim = 0)
-        probs = torch.cat([x['Y_prob'] for x in val_step_outputs], dim = 0)
+        # --- Start: Keep all existing metric calculation logic ---
+        logits = torch.cat([x['logits'] for x in val_step_outputs], dim=0)
+        probs = torch.cat([x['Y_prob'] for x in val_step_outputs], dim=0)
         max_probs = torch.stack([x['Y_hat'] for x in val_step_outputs])
-        target = torch.stack([x['label'] for x in val_step_outputs], dim = 0)
-        
-        #---->
-        self.log('val_loss', cross_entropy_torch(logits, target), prog_bar=True, on_epoch=True, logger=True)
-        self.log('auc', self.AUROC(probs, target.squeeze()), prog_bar=True, on_epoch=True, logger=True)
-        self.log_dict(self.valid_metrics(max_probs.squeeze() , target.squeeze()),
-                          on_epoch = True, logger = True)
+        target = torch.stack([x['label'] for x in val_step_outputs], dim=0)
 
-        #---->acc log
-        for c in range(self.n_classes):
-            count = self.data[c]["count"]
-            correct = self.data[c]["correct"]
-            if count == 0: 
-                acc = None
-            else:
-                acc = float(correct) / count
-            print('class {}: acc {}, correct {}/{}'.format(c, acc, correct, count))
-        self.data = [{"count": 0, "correct": 0} for i in range(self.n_classes)]
+        val_loss = self.loss(logits, target)
+        val_auc = self.AUROC(probs[:, 1], target.squeeze())
         
-        #---->random, if shuffle data, change seed
+        self.log('val_loss', val_loss, prog_bar=True, on_epoch=True, logger=True)
+        self.log('auc', val_auc, prog_bar=True, on_epoch=True, logger=True)
+        self.log_dict(self.valid_metrics(max_probs.squeeze(), target.squeeze()),
+                      on_epoch=True, logger=True)
+        # --- End: Keep all existing metric calculation logic ---
+
+        # --- Start: New Detailed and Clean Logging ---
+        # Fetch metrics (use locally calculated values for robustness)
+        current_val_loss = val_loss
+        current_auc = val_auc
+        
+        # Safely get the best score and handle the case where it's not set yet
+        best_val_loss = self.trainer.checkpoint_callback.best_model_score
+        if best_val_loss is None:
+            best_val_loss = float('inf')
+            
+        # Get current learning rate
+        current_lr = self.trainer.optimizers[0].param_groups[0]['lr']
+
+        # Prepare log message
+        print(f"\n\n{'='*60}")
+        print(f"  Epoch {self.trainer.current_epoch} Validation Summary")
+        print(f"{'-'*60}")
+        
+        if current_val_loss is not None:
+            print(f"    Validation Loss: {current_val_loss:.5f}")
+        if current_auc is not None:
+            print(f"    Validation AUC:  {current_auc:.5f}")
+            
+        print(f"\n    Best Validation Loss: {best_val_loss:.5f}")
+
+        # Check if the model was saved in this epoch
+        if current_val_loss is not None and current_val_loss < best_val_loss:
+            print("    --> Validation Loss Improved! Model checkpoint SAVED.")
+        else:
+            print("    --> Model checkpoint was NOT saved this epoch.")
+            
+        print(f"\n    Current Learning Rate: {current_lr:.1e}")
+        print(f"{'='*60}\n")
+        # --- End: New Detailed and Clean Logging ---
+
+        # --- Start: Keep the random seed logic ---
         if self.shuffle == True:
-            self.count = self.count+1
-            random.seed(self.count*50)
+            self.count = self.count + 1
+            random.seed(self.count * 50)
+        # --- End: Keep the random seed logic ---
     
 
 
     def configure_optimizers(self):
-        optimizer = create_optimizer(self.optimizer, self.model)
-        return [optimizer]
+        optimizer = optim.AdamW(self.model.parameters(), lr=self.hparams.optimizer['lr'], weight_decay=self.hparams.optimizer['weight_decay'])
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, verbose=True)
+        return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "monitor": "val_loss"}}
 
     def test_step(self, batch, batch_idx):
         data, label = batch
@@ -170,29 +201,51 @@ class  ModelInterface(pl.LightningModule):
         return {'logits' : logits, 'Y_prob' : Y_prob, 'Y_hat' : Y_hat, 'label' : label}
 
     def test_epoch_end(self, output_results):
-        probs = torch.cat([x['Y_prob'] for x in output_results], dim = 0)
+        logits = torch.cat([x['logits'] for x in output_results], dim=0) # Need logits for loss
+        probs = torch.cat([x['Y_prob'] for x in output_results], dim=0)
         max_probs = torch.stack([x['Y_hat'] for x in output_results])
-        target = torch.stack([x['label'] for x in output_results], dim = 0)
+        target = torch.stack([x['label'] for x in output_results], dim=0)
         
-        #---->
-        auc = self.AUROC(probs, target.squeeze())
+        # Calculate test loss, as it's not currently calculated in test_step
+        test_loss = self.loss(logits, target)
+
+        auc = self.AUROC(probs[:, 1], target.squeeze())
         metrics = self.test_metrics(max_probs.squeeze() , target.squeeze())
-        metrics['auc'] = auc
-        for keys, values in metrics.items():
-            print(f'{keys} = {values}')
-            metrics[keys] = values.cpu().numpy()
-        print()
-        #---->acc log
+        metrics['auc'] = auc # Add AUC to the metrics dictionary
+
+        # --- Start: New Detailed and Clean Logging ---
+        print(f"\n\n{'='*60}")
+        print(f"  Final Test Report")
+        print(f"{'-'*60}")
+        
+        print(f"    Test Loss: {test_loss:.5f}")
+        print(f"    Test AUC:  {auc:.5f}")
+        
+        # Print other relevant test metrics
+        for key, value in metrics.items():
+            if key != 'auc': # Already printed AUC separately
+                print(f"    {key}: {value:.5f}")
+
+        print(f"\n    Class-wise Accuracy:")
         for c in range(self.n_classes):
             count = self.data[c]["count"]
             correct = self.data[c]["correct"]
             if count == 0: 
-                acc = None
+                acc = "N/A"
             else:
-                acc = float(correct) / count
-            print('class {}: acc {}, correct {}/{}'.format(c, acc, correct, count))
+                acc = f"{float(correct) / count:.3f}"
+            print(f"      class {c}: acc {acc}, correct {correct}/{count}")
+        
+        print(f"{'='*60}\n")
+        # --- End: New Detailed and Clean Logging ---
+
+        # Reset self.data for class-wise accuracy tracking
         self.data = [{"count": 0, "correct": 0} for i in range(self.n_classes)]
-        #---->
+        
+        # Convert metrics values to numpy for CSV saving
+        for keys, values in metrics.items():
+            metrics[keys] = values.cpu().numpy()
+
         result = pd.DataFrame([metrics])
         result.to_csv(self.log_path / 'result.csv')
 

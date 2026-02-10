@@ -42,7 +42,8 @@ class FocalLoss(nn.Module):
             logit = logit.view(logit.size(0), logit.size(1), -1)
             logit = logit.permute(0, 2, 1).contiguous()
             logit = logit.view(-1, logit.size(-1))
-        target = torch.squeeze(target, 1)
+        if target.dim() == 2:
+            target = torch.squeeze(target, 1)
         target = target.view(-1, 1)
         # print(logit.shape, target.shape)
         # 

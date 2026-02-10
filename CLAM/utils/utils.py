@@ -56,7 +56,7 @@ def get_split_loader(split_dataset, training = False, testing = False, weighted 
 	"""
 	if split_dataset is None:
 		return None
-	kwargs = {'num_workers': 4} if device.type == "cuda" else {}
+	kwargs = {'num_workers': 0} if device.type == "cuda" else {}
 	if not testing:
 		if training:
 			if weighted:

@@ -1,3 +1,7 @@
+import os
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 import argparse
 from pathlib import Path
 import numpy as np
@@ -39,14 +43,14 @@ def main(cfg):
                 'test_batch_size': cfg.Data.test_dataloader.batch_size,
                 'test_num_workers': cfg.Data.test_dataloader.num_workers,
                 'dataset_name': cfg.Data.dataset_name,
-                'dataset_cfg': cfg.Data,}
+                'dataset_cfg': cfg.Data.to_dict(),}
     dm = DataInterface(**DataInterface_dict)
 
     #---->Define Model
-    ModelInterface_dict = {'model': dict(cfg.Model),
-                            'loss': dict(cfg.Loss),
-                            'optimizer': dict(cfg.Optimizer),
-                            'data': dict(cfg.Data),
+    ModelInterface_dict = {'model': cfg.Model.to_dict(),
+                            'loss': cfg.Loss.to_dict(),
+                            'optimizer': cfg.Optimizer.to_dict(),
+                            'data': cfg.Data.to_dict(),
                             'log': cfg.log_path
                             }
     model = ModelInterface(**ModelInterface_dict)

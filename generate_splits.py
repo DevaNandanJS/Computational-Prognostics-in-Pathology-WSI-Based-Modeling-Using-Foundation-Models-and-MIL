@@ -29,14 +29,29 @@ def main(args):
             fold_dir = os.path.join(args.split_dir, str(i))
             os.makedirs(fold_dir, exist_ok=True)
 
-            # --- This block now ONLY creates train and test ---
+            # --- This block creates train, val, and test sets ---
             train_df = df.iloc[train_ids]
             test_df = df.iloc[test_ids]
 
+            # Split the training data into a new training set and a validation set
+            val_frac = args.val_frac
+            if val_frac > 0:
+                print(f"Splitting {val_frac*100}% of training data for validation...")
+                # Stratify the split to maintain label distribution in both train and val sets.
+                train_df, val_df = train_test_split(train_df, test_size=val_frac, stratify=train_df[args.label_col], random_state=args.seed)
+            else:
+                val_df = pd.DataFrame() # Create empty dataframe if no validation set is needed
+
             train_df.to_csv(os.path.join(fold_dir, 'train.csv'), index=False)
+            val_df.to_csv(os.path.join(fold_dir, 'val.csv'), index=False)
             test_df.to_csv(os.path.join(fold_dir, 'test.csv'), index=False)
             
-            print(f"Fold {i}: {len(train_df)} train, {len(test_df)} test")
+            print(f"Fold {i}: {len(train_df)} train, {len(val_df)} val, {len(test_df)} test")
+            print(f"Train distribution:\n{train_df[args.label_col].value_counts(normalize=True)}")
+            if not val_df.empty:
+                print(f"Validation distribution:\n{val_df[args.label_col].value_counts(normalize=True)}")
+            print(f"Test distribution:\n{test_df[args.label_col].value_counts(normalize=True)}")
+
             # --- END OF BLOCK ---
 
         print(f"\nSuccessfully created and saved {args.k} splits in the '{args.split_dir}' directory.")
@@ -50,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--task', type=str, choices=['task_2_tumor_subtyping', 'survival'], required=True, help='Task type')
     parser.add_argument('--label_col', type=str, required=True, help='Name of the label column')
     parser.add_argument('--k', type=int, default=5, help='Number of folds')
-    parser.add_argument('--val_frac', type=float, default=0.0, help='Fraction of training data to use for validation (NOT USED, but kept for compatibility)')
+    parser.add_argument('--val_frac', type=float, default=0.1, help='Fraction of training data to use for validation.')
     parser.add_argument('--seed', type=int, default=1, help='Random seed')
     parser.add_argument('--split_dir', type=str, default='splits', help='Directory to save the split files')
 

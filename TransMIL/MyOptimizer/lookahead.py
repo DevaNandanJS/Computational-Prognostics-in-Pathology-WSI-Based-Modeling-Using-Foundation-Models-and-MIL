@@ -21,6 +21,8 @@ class Lookahead(Optimizer):
         self.defaults = base_optimizer.defaults
         self.defaults.update(defaults)
         self.state = defaultdict(dict)
+        self._optimizer_step_pre_hooks = self.base_optimizer._optimizer_step_pre_hooks
+        self._optimizer_step_post_hooks = self.base_optimizer._optimizer_step_post_hooks
         # manually add our defaults to the param groups
         for name, default in defaults.items():
             for group in self.param_groups:

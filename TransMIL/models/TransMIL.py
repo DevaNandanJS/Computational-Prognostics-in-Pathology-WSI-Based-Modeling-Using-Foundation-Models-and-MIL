@@ -14,7 +14,7 @@ class TransLayer(nn.Module):
             dim = dim,
             dim_head = dim//8,
             heads = 8,
-            num_landmarks = dim//2,    # number of landmarks
+            num_landmarks = dim//4,    # number of landmarks
             pinv_iterations = 6,    # number of moore-penrose iterations for approximating pinverse. 6 was recommended by the paper
             residual = True,         # whether to do an extra residual with the value or not. supposedly faster convergence if turned on
             dropout=0.1
@@ -47,20 +47,27 @@ class TransMIL(nn.Module):
     def __init__(self, n_classes):
         super(TransMIL, self).__init__()
         self.pos_layer = PPEG(dim=512)
-        self._fc1 = nn.Sequential(nn.Linear(1024, 512), nn.ReLU())
+        self._fc1 = nn.Sequential(nn.Linear(1536, 512), nn.ReLU())
         self.cls_token = nn.Parameter(torch.randn(1, 1, 512))
         self.n_classes = n_classes
         self.layer1 = TransLayer(dim=512)
         self.layer2 = TransLayer(dim=512)
         self.norm = nn.LayerNorm(512)
+        self.dropout = nn.Dropout(0.25)
         self._fc2 = nn.Linear(512, self.n_classes)
 
 
     def forward(self, **kwargs):
 
-        h = kwargs['data'].float() #[B, n, 1024]
+        h = kwargs['data'].float() #[B, n, 1536]
         
+        # Guard against unusual tensor shapes
+        h = h.squeeze() # remove all singleton dimensions
+        if h.dim() == 2: # if batch size was 1 and got squeezed, add it back
+            h = h.unsqueeze(0)
+
         h = self._fc1(h) #[B, n, 512]
+        h = self.dropout(h)
         
         #---->pad
         H = h.shape[1]
@@ -84,6 +91,7 @@ class TransMIL(nn.Module):
 
         #---->cls_token
         h = self.norm(h)[:,0]
+        h = self.dropout(h)
 
         #---->predict
         logits = self._fc2(h) #[B, n_classes]
