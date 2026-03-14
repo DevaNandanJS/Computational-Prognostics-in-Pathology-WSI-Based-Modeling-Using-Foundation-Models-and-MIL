@@ -78,7 +78,7 @@ class  ModelInterface(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         #---->inference
-        data, label = batch
+        data, label, _ = batch
         results_dict = self.model(data=data, label=label)
         logits = results_dict['logits']
         Y_prob = results_dict['Y_prob']
@@ -107,7 +107,7 @@ class  ModelInterface(pl.LightningModule):
         self.data = [{"count": 0, "correct": 0} for i in range(self.n_classes)]
 
     def validation_step(self, batch, batch_idx):
-        data, label = batch
+        data, label, _ = batch
         results_dict = self.model(data=data, label=label)
         logits = results_dict['logits']
         Y_prob = results_dict['Y_prob']
@@ -187,7 +187,7 @@ class  ModelInterface(pl.LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "monitor": "val_loss"}}
 
     def test_step(self, batch, batch_idx):
-        data, label = batch
+        data, label, slide_id = batch
         results_dict = self.model(data=data, label=label)
         logits = results_dict['logits']
         Y_prob = results_dict['Y_prob']
@@ -198,7 +198,7 @@ class  ModelInterface(pl.LightningModule):
         self.data[Y]["count"] += 1
         self.data[Y]["correct"] += (Y_hat.item() == Y)
 
-        return {'logits' : logits, 'Y_prob' : Y_prob, 'Y_hat' : Y_hat, 'label' : label}
+        return {'logits' : logits, 'Y_prob' : Y_prob, 'Y_hat' : Y_hat, 'label' : label, 'slide_id': slide_id}
 
     def test_epoch_end(self, output_results):
         logits = torch.cat([x['logits'] for x in output_results], dim=0) # Need logits for loss
@@ -248,6 +248,18 @@ class  ModelInterface(pl.LightningModule):
 
         result = pd.DataFrame([metrics])
         result.to_csv(self.log_path / 'result.csv')
+
+        # Save individual slide results for ROC curves
+        slide_ids = [x['slide_id'][0] if isinstance(x['slide_id'], (list, tuple)) else x['slide_id'] for x in output_results]
+        
+        individual_results = pd.DataFrame({
+            'slide_id': slide_ids,
+            'label': target.squeeze().cpu().numpy(),
+            'prob_0': probs[:, 0].cpu().numpy(),
+            'prob_1': probs[:, 1].cpu().numpy(),
+            'prediction': max_probs.squeeze().cpu().numpy()
+        })
+        individual_results.to_csv(self.log_path / 'test_predictions.csv', index=False)
 
 
     def load_model(self):

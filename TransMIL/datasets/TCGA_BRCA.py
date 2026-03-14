@@ -56,4 +56,4 @@ class TcgaBrca(data.Dataset):
             random.shuffle(index)
             features = features[index]
 
-        return features, label
+        return features, label, slide_id
