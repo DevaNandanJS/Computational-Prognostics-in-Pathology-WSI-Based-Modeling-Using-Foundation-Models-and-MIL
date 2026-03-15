@@ -179,7 +179,7 @@ print('\nLoad Dataset')
 
 if args.task == 'task_1_tumor_vs_normal':
     args.n_classes=2
-    dataset = Generic_MIL_Dataset(csv_path = 'dataset_csv/tumor_vs_normal_dummy_clean.csv',
+    dataset = Generic_MIL_Dataset(csv_path = '../master.csv', # Changed to relative path
                             data_dir= os.path.join(args.data_root_dir, 'tumor_vs_normal_resnet_features'),
                             shuffle = False, 
                             seed = args.seed, 
@@ -190,7 +190,7 @@ if args.task == 'task_1_tumor_vs_normal':
 
 elif args.task == 'task_2_tumor_subtyping':
     args.n_classes=2 # Changed from 3 to 2 for binary classification
-    dataset = Generic_MIL_Dataset(csv_path = 'C:/thesis project/master.csv',
+    dataset = Generic_MIL_Dataset(csv_path = '../master.csv', # Changed to relative path
                             data_dir= args.data_root_dir,
                             shuffle = False, 
                             seed = args.seed, 

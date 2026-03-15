@@ -61,11 +61,11 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create cross-validation splits')
-    parser.add_argument('--data_dir', type=str, required=True, help='Path to the master CSV file')
-    parser.add_argument('--task', type=str, choices=['task_2_tumor_subtyping', 'survival'], required=True, help='Task type')
-    parser.add_argument('--label_col', type=str, required=True, help='Name of the label column')
+    parser.add_argument('--data_dir', type=str, default='master.csv', help='Path to the master CSV file')
+    parser.add_argument('--task', type=str, choices=['task_2_tumor_subtyping', 'survival'], default='task_2_tumor_subtyping', help='Task type')
+    parser.add_argument('--label_col', type=str, default='label', help='Name of the label column')
     parser.add_argument('--k', type=int, default=5, help='Number of folds')
-    parser.add_argument('--val_frac', type=float, default=0.1, help='Fraction of training data to use for validation.')
+    parser.add_argument('--val_frac', type=float, default=0.2, help='Fraction of training data to use for validation.')
     parser.add_argument('--seed', type=int, default=1, help='Random seed')
     parser.add_argument('--split_dir', type=str, default='splits', help='Directory to save the split files')
 

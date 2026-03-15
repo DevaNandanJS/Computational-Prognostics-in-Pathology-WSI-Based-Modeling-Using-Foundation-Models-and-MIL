@@ -2,8 +2,8 @@ import pandas as pd
 import os
 
 # 1. Define Paths
-clinical_file_path = r'C:\thesis project\TCGA-CDR-SupplementalTableS1.xlsx'
-features_dir_path = r'C:\thesis project\TCGA-BRCA-features\TCGA'
+clinical_file_path = r'D:\thesis project\TCGA-CDR-SupplementalTableS1.xlsx'
+features_dir_path = r'D:\thesis project\TCGA-BRCA_IDC'
 
 # 2. Load Clinical Data
 print("Loading clinical data...")

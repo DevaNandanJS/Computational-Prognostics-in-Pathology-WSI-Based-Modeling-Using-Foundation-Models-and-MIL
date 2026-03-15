@@ -160,10 +160,12 @@ def plot_confusion_matrices(model_results, save_dir='.'):
         plt.close()
 
 def main():
-    # Paths (adjust based on actual execution results)
-    # CLAM results directory (the one containing split_X_results.pkl)
-    clam_results_dir = 'CLAM/results/brca_5yr_classification_clam_fold_0_focal_loss_s1'
-    # TransMIL logs directory (the one containing foldX/test_predictions.csv)
+    # Paths (Updated to match final experiment codes)
+    # CLAM results directory (matching --exp_code brca_5yr_classification_clam_final and seed 1)
+    clam_results_dir = 'CLAM/results/brca_5yr_classification_clam_final_s1'
+    
+    # TransMIL logs directory (where fold0, fold1, etc. subfolders are located)
+    # This path assumes logs are stored inside the TransMIL directory
     transmil_logs_dir = 'TransMIL/logs/TCGA_BRCA'
     
     print("Loading results...")

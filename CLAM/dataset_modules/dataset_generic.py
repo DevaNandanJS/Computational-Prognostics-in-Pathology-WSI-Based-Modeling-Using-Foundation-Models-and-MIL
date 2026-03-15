@@ -347,8 +347,12 @@ class Generic_MIL_Dataset(Generic_WSI_Classification_Dataset):
 		if not self.use_h5:
 			if self.data_dir:
 				full_path = os.path.join(data_dir, '{}.h5'.format(slide_id))
-				with h5py.File(full_path, 'r') as hf:
-					features = hf['features'][:]
+				try:
+					with h5py.File(full_path, 'r') as hf:
+						features = hf['features'][:]
+				except Exception as e:
+					print(f"FAILED TO OPEN: {full_path}")
+					raise e
 				features = torch.from_numpy(features)
 				return features, label
 			
