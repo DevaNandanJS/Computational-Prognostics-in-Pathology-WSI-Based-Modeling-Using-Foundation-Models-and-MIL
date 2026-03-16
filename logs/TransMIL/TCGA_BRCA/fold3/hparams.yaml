@@ -1,0 +1,30 @@
+data:
+  data_dir: D:/thesis project/TCGA-BRCA_IDC/
+  data_shuffle: false
+  dataset_name: TCGA_BRCA
+  fold: '3'
+  label_dir: D:/thesis project/splits/
+  nfold: 5
+  test_dataloader:
+    batch_size: 1
+    num_workers: 0
+  train_dataloader:
+    batch_size: 1
+    num_workers: 0
+log: !!python/object/apply:pathlib.WindowsPath
+- logs
+- TransMIL
+- TCGA_BRCA
+- fold3
+loss:
+  base_loss: focal
+model:
+  n_classes: 2
+  name: TransMIL
+optimizer:
+  lr: 2.0e-05
+  momentum: null
+  opt: lookahead_radam
+  opt_betas: null
+  opt_eps: null
+  weight_decay: 0.01

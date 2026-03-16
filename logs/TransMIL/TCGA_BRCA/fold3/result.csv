@@ -1,0 +1,2 @@
+,test_BinaryAccuracy,test_BinaryCohenKappa,test_BinaryF1Score,test_BinaryRecall,test_BinaryPrecision,auc
+0,0.45833334,0.008045733,0.19469027,0.57894737,0.11702128,0.5510421

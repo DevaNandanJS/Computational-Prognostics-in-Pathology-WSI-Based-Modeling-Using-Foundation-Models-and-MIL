@@ -1,0 +1,5 @@
+Parameter,CLAM,TransMIL
+Trainable Parameters,"~2.8 Million","~12.5 Million"
+"Inference Time / Slide (ms)",45,180
+"Peak VRAM Usage (Training) (GB)",6.2,18.4
+"Epoch Training Time (Avg) (Minutes)",3.5,12.2

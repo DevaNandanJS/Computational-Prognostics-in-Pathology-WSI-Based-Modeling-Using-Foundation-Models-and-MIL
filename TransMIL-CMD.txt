@@ -1,1 +1,13 @@
-python train.py --stage='train' --config='TCGA_BRCA.yaml' --gpus=0 --fold=0
+# Training
+python TransMIL/train.py --stage 'train' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 0
+python TransMIL/train.py --stage 'train' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 1
+python TransMIL/train.py --stage 'train' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 2
+python TransMIL/train.py --stage 'train' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 3
+python TransMIL/train.py --stage 'train' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 4
+
+# Testing
+python TransMIL/train.py --stage 'test' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 0
+python TransMIL/train.py --stage 'test' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 1
+python TransMIL/train.py --stage 'test' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 2
+python TransMIL/train.py --stage 'test' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 3
+python TransMIL/train.py --stage 'test' --config 'TransMIL/TCGA_BRCA.yaml' --gpus 0 --fold 4

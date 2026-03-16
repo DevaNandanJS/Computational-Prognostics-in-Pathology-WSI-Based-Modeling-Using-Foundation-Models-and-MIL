@@ -1,0 +1,9 @@
+Paired T-Test on AUC scores between CLAM and TransMIL:
+---------------------------------------------------
+CLAM AUCs:     [0.462, 0.61, 0.774, 0.563, 0.681]
+TransMIL AUCs: [0.873, 0.608, 0.662, 0.551, 0.672]
+
+T-statistic: -0.6059
+P-value:     0.5773
+
+Conclusion: The difference in performance IS NOT statistically significant.

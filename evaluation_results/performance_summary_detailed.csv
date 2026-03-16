@@ -1,0 +1,7 @@
+Metric,CLAM (Mean ± Std),TransMIL (Mean ± Std)
+AUC,0.618 ± 0.118,0.673 ± 0.122
+Accuracy,0.603 ± 0.176,0.656 ± 0.187
+Precision,0.125 ± 0.032,0.160 ± 0.041
+Recall,0.545 ± 0.264,0.580 ± 0.195
+F1-score,0.202 ± 0.056,0.238 ± 0.035
+Specificity,0.598 ± 0.225,0.662 ± 0.218
