@@ -16,8 +16,8 @@ General:
 Data:
     dataset_name: TCGA_BRCA
     data_shuffle: False
-    data_dir: D:/thesis project/TCGA-BRCA_IDC/
-    label_dir: D:/thesis project/splits/
+    data_dir: C:/thesis project/TCGA-BRCA-features/TCGA/
+    label_dir: C:/thesis project/splits/
     fold: 0
     nfold: 5
 

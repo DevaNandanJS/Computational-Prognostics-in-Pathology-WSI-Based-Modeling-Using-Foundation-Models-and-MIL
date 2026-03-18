@@ -2,8 +2,8 @@ import pandas as pd
 import os
 
 # 1. Define Paths
-clinical_file_path = r'D:\thesis project\TCGA-CDR-SupplementalTableS1.xlsx'
-features_dir_path = r'D:\thesis project\TCGA-BRCA_IDC'
+clinical_file_path = r'C:\thesis project\TCGA-CDR-SupplementalTableS1.xlsx'
+features_dir_path = r'C:\thesis project\TCGA-BRCA-features\TCGA'
 
 # 2. Load Clinical Data
 print("Loading clinical data...")
@@ -44,7 +44,7 @@ final_df = final_df.astype({
     'OS_status': int
 })
 
-output_path = 'master.csv'
+output_path = 'master_other.csv'
 final_df.to_csv(output_path, index=False)
 
 print(f"Successfully created {output_path} with {len(final_df)} records.")

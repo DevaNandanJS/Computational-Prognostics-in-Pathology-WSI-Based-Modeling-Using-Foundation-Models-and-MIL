@@ -1,9 +1,9 @@
 data:
-  data_dir: D:/thesis project/TCGA-BRCA_IDC/
+  data_dir: C:/thesis project/TCGA-BRCA-features/TCGA/
   data_shuffle: false
   dataset_name: TCGA_BRCA
   fold: '3'
-  label_dir: D:/thesis project/splits/
+  label_dir: C:/thesis project/splits/
   nfold: 5
   test_dataloader:
     batch_size: 1
