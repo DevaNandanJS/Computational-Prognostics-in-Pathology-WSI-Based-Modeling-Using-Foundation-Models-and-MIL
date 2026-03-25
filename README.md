@@ -1,6 +1,6 @@
 # Computational Prognostics in Pathology: A WSI Analysis Using Foundation Models and Multiple Instance Learning
 
-**Author:** Deva Nandan JS  
+**Author:** Deva Nandan JS, Dr Velmani R
 **Institution:** School of Computer Science and Artificial Intelligence, VIT Bhopal University  
 **Supervisor:** Dr. Velmani R  
 
